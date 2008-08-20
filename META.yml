@@ -1,0 +1,14 @@
+--- #YAML:1.0
+name:                HTML-Table-FromDatabase
+version:             0.01
+abstract:            subclass of HTML::Table to generate tables
+license:             perl
+author:              
+    - David Precious <davidp@preshweb.co.uk>
+generated_by:        ExtUtils::MakeMaker version 6.44
+distribution_type:   module
+requires:     
+    HTML::Table:                   0
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.3.html
+    version: 1.3
