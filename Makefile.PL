@@ -1,5 +1,6 @@
+# $Id: Makefile.PL 416 2008-08-21 09:24:03Z davidp $
+
 use strict;
-use warnings;
 use ExtUtils::MakeMaker;
 
 WriteMakefile(

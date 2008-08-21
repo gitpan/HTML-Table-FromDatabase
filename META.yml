@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                HTML-Table-FromDatabase
-version:             0.01
+version:             0.02
 abstract:            subclass of HTML::Table to generate tables
 license:             perl
 author:              

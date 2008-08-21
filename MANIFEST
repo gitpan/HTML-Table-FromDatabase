@@ -6,5 +6,6 @@ lib/HTML/Table/FromDatabase.pm
 t/00-load.t
 t/pod-coverage.t
 t/pod.t
+t/mock.t
 eg/example.pl
 META.yml                                 Module meta-data (added by MakeMaker)
