@@ -5,9 +5,9 @@ use 5.005000;
 use strict;
 use base qw(HTML::Table);
 use vars qw($VERSION);
-$VERSION = '0.02';
+$VERSION = '0.03';
 
-# $Id: FromDatabase.pm 424 2008-08-21 22:00:46Z davidp $
+# $Id: FromDatabase.pm 482 2008-11-19 20:48:14Z davidp $
 
 =head1 NAME
 
@@ -34,7 +34,7 @@ to take the results and turn them into a table.
 
 HTML::Table itself helps here, but this module makes it even simpler.
 
-Row headings are taken from the field names returned by the query.
+Column headings are taken from the field names returned by the query.
 
 All options you pass to the constructor will be passed through to HTML::Table,
 so you can use all the usual HTML::Table features.
@@ -47,10 +47,26 @@ so you can use all the usual HTML::Table features.
 =item new
 
 Constructor method - consult L<HTML::Table>'s documentation, the only
-difference here is the addition of the required I<-sth> parameter which
-should be a DBI statement handle, and the optional I<-callbacks> parameter
-which specifies callbacks/transformations which should be applied as the
+difference here is the addition of the following parameters:
+
+=over 4
+
+=item I<-sth>
+
+(required) a DBI statement handle which has been executed and is ready
+to fetch data from
+
+=item I<-callbacks>
+
+(optional) specifies callbacks/transformations which should be applied as the
 table is built up (see the callbacks section below).
+
+=item I<-html>
+
+(optional) can be I<escape> or I<strip> if you want HTML to be escaped
+(angle brackets replaced with &lt; and &gt;) or stripped out with HTML::Strip.
+
+=back
 
 =cut
 
@@ -72,6 +88,27 @@ sub new {
             ."expected a arrayref of hashrefs";
         return;
     }
+
+    # if we're going to encode or escape HTML, prepare to do so:
+    my $preprocessor;
+    if (my $handle_html = delete $flags{-html}) {
+        if ($handle_html eq 'strip') {
+            eval "require HTML::Strip;";
+            if ($@) {
+                warn "Failed to load HTML::Strip - cannot strip HTML";
+                return;
+            }
+            my $hs = new HTML::Strip;
+            $preprocessor = sub { $hs->eof; return $hs->parse(shift) };
+        } elsif ($handle_html eq 'encode' || $handle_html eq 'escape') {
+            eval "require CGI;";
+            $preprocessor = sub { CGI::escapeHTML(shift); };
+        } else {
+            warn "Unrecognised -html option.";
+            return;
+        }
+    }
+    
     # Create a HTML::Table object, passing along any other options we were
     # given:
     my $self = HTML::Table->new(%flags);
@@ -87,6 +124,10 @@ sub new {
         my @fields;
         for my $column (@columns) {
             my $value = $row->{$column};
+
+            if ($preprocessor) {
+                $value = $preprocessor->($value);
+            }
 
             # If we have a callbck to perform for this field, do it:
             for my $callback (@$callbacks) {
@@ -197,7 +238,7 @@ Another example - displaying all numbers to two decimal points:
     -sth => $sth,
     -callbacks => [
         {
-            value => qr/\d+/,
+            value => qr/^\d+$/,
             transform => sub { return sprintf '%.2f', shift },
         },
     ],
@@ -206,6 +247,7 @@ Another example - displaying all numbers to two decimal points:
 It is hoped that this facility will allow the easyness of quickly creating
 a table to still be retained, even when you need to do things with the data
 rather than just displaying it exactly as it comes out of the database.
+
 =head1 AUTHOR
 
 David Precious, E<lt>davidp@preshweb.co.ukE<gt>

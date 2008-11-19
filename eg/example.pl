@@ -3,7 +3,7 @@
 use strict;
 use HTML::Table::FromDatabase;
 
-# $Id: example.pl 412 2008-08-20 22:44:07Z davidp $
+# $Id: example.pl 444 2008-09-04 18:55:10Z davidp $
 # Simple usage example for HTML::Table::FromDatabase
 
 # Normal DBI stuff to perform a query...
