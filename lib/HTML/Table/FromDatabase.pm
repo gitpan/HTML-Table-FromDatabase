@@ -1,13 +1,14 @@
 package HTML::Table::FromDatabase;
 
-use HTML::Table;
 use 5.005000;
 use strict;
 use base qw(HTML::Table);
 use vars qw($VERSION);
-$VERSION = '0.04';
+use HTML::Table;
 
-# $Id: FromDatabase.pm 659 2009-07-23 10:17:53Z davidp $
+$VERSION = '0.05';
+
+# $Id: FromDatabase.pm 665 2009-07-23 17:40:49Z davidp $
 
 =head1 NAME
 
@@ -32,12 +33,13 @@ I often find myself writing scripts which fetch data from a database and
 present it in a HTML table; often resulting in pointlessly repeated code
 to take the results and turn them into a table.
 
-HTML::Table itself helps here, but this module makes it even simpler.
+L<HTML::Table> itself helps here, but this module makes it even simpler.
 
-Column headings are taken from the field names returned by the query.
+Column headings are taken from the field names returned by the query, unless
+overridden with the I<-override_headers> or I<-rename_headers> options.
 
 All options you pass to the constructor will be passed through to HTML::Table,
-so you can use all the usual HTML::Table features.
+so you can use all the usual L<HTML::Table> features.
 
 
 =head1 INTERFACE
@@ -51,20 +53,32 @@ difference here is the addition of the following parameters:
 
 =over 4
 
-=item I<-sth>
+=item C<-sth>
 
 (required) a DBI statement handle which has been executed and is ready
 to fetch data from
 
-=item I<-callbacks>
+=item C<-callbacks>
 
 (optional) specifies callbacks/transformations which should be applied as the
 table is built up (see the callbacks section below).
 
-=item I<-html>
+=item C<-html>
 
 (optional) can be I<escape> or I<strip> if you want HTML to be escaped
 (angle brackets replaced with &lt; and &gt;) or stripped out with HTML::Strip.
+
+=item C<-override_headers>
+
+(optional) provide a list of names to be used as the column headings, instead of
+using the names of the columns returned by the SQL query.  This should be an
+arrayref containing the heading names, and the number of heading names must
+match the number of columns returned by the query.
+
+=item C<-rename_headers>
+
+(optional) provide a hashref of oldname => newname pairs to rename some or all
+of the column names returned by the query when generating the table headings.
 
 =back
 
@@ -103,6 +117,7 @@ sub new {
         return;
     }
 
+
     # if we're going to encode or escape HTML, prepare to do so:
     my $preprocessor;
     if (my $handle_html = delete $flags{-html}) {
@@ -139,6 +154,10 @@ sub new {
         }
     }
     if ($override_headers) {
+        if (@$override_headers != @heading_names) {
+            warn "Incorrect number of header names in -override_headers option"
+                ." - got " . @$override_headers . ", needed " .  @heading_names;
+        }
         @heading_names = @$override_headers;
     }
     
@@ -155,7 +174,8 @@ sub new {
                 $value = $preprocessor->($value);
             }
 
-            # If we have a callbck to perform for this field, do it:
+
+            # If we have a callback to perform for this field, do it:
             for my $callback (@$callbacks) {
                 # See what we need to match against, and if it matches, call
                 # the specified transform callback to potentially change the
@@ -260,8 +280,8 @@ a column which contains URLs into clickable links:
     ],
  );
 
-You can match against the column name using a key named column in the hashref
-(as illustrated above) or against the actual value using a key named value.
+You can match against the column name using a key named C<column> in the hashref
+(as illustrated above) or against the actual value using a key named C<value>.
 
 You can pass a straight scalar to compare against, a regex (using qr//), or
 a coderef which will be executed to determine if it matches.
@@ -278,7 +298,7 @@ Another example - displaying all numbers to two decimal points:
     ],
  );
 
-It is hoped that this facility will allow the easyness of quickly creating
+It is hoped that this facility will allow the easiness of quickly creating
 a table to still be retained, even when you need to do things with the data
 rather than just displaying it exactly as it comes out of the database.
 
@@ -287,11 +307,11 @@ rather than just displaying it exactly as it comes out of the database.
 
 L<HTML::Table>, obviously :)
 
-L<HTML::Strip> is required if you use the -html => 'strip' option.
+L<HTML::Strip> is required if you use the C<-html => 'strip'> option.
 
-L<CGI> will be used to encode HTML (this may change in future versions, as
-loading a module as big as CGI.pm simply to HTML-encode text seems akin
-to using a tactictal nuclear weapon to dig a hole.
+L<CGI> if you use the C<-html => 'encode'> option (this may change in future 
+versions, as loading a module as big as CGI.pm simply to HTML-encode text 
+seems akin to using a tactictal nuclear weapon to dig a hole).
 
 
 =head1 AUTHOR
@@ -303,7 +323,7 @@ report.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2008 by David Precious
+Copyright (C) 2008-2009 by David Precious
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.7 or,
