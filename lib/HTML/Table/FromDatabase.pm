@@ -5,9 +5,9 @@ use 5.005000;
 use strict;
 use base qw(HTML::Table);
 use vars qw($VERSION);
-$VERSION = '0.03';
+$VERSION = '0.04';
 
-# $Id: FromDatabase.pm 482 2008-11-19 20:48:14Z davidp $
+# $Id: FromDatabase.pm 659 2009-07-23 10:17:53Z davidp $
 
 =head1 NAME
 
@@ -89,6 +89,20 @@ sub new {
         return;
     }
 
+    my $override_headers = delete $flags{-override_headers};
+    if ($override_headers && ref $override_headers ne 'ARRAY') {
+        warn "Unrecognised -override_headers parameter; "
+            ."expected an arrayref";
+        return;
+    }
+
+    my $rename_headers = delete $flags{-rename_headers};
+    if ($rename_headers && ref $rename_headers ne 'HASH') {
+        warn "Unrecognised -rename_headers parameter; "
+            ."expected a hashref";
+        return;
+    }
+
     # if we're going to encode or escape HTML, prepare to do so:
     my $preprocessor;
     if (my $handle_html = delete $flags{-html}) {
@@ -115,6 +129,18 @@ sub new {
     
     # Find the names;
     my @columns = @{ $sth->{NAME} };
+
+    # Default to using the column names as headings, unless we've been given
+    # an -override_headers or -rename_headers option:
+    my @heading_names = @columns;
+    if ($rename_headers) {
+        for (@heading_names) {
+            $_ = $rename_headers->{$_} if exists $rename_headers->{$_};
+        }
+    }
+    if ($override_headers) {
+        @heading_names = @$override_headers;
+    }
     
     $self->addSectionRow('thead', 0, @columns);
     $self->setSectionRowHead('thead', 0, 1);
@@ -136,12 +162,16 @@ sub new {
                 # value.
                 if (exists $callback->{column}) {
                     if (_callback_matches($callback->{column}, $column)) {
-                        $value = _perform_callback($callback, $column, $value);
+                        $value = _perform_callback(
+                           $callback, $column, $value, $row
+                        );
                     }
                 }
                 if (exists $callback->{value}) {
                     if (_callback_matches($callback->{value}, $value)) {
-                        $value = _perform_callback($callback, $column, $value);
+                        $value = _perform_callback(
+                            $callback, $column, $value, $row
+                        );
                     }
                 }
             }
@@ -179,13 +209,13 @@ sub _callback_matches {
 # A callback spec matched, so perform any callback it requests, and apply
 # any transformation it described:
 sub _perform_callback {
-    my ($callback, $column, $value) = @_;
+    my ($callback, $column, $value,$row) = @_;
 
     # Firstly, if there's a callback to perform, we call it (but don't
     # care what it returns):
     if (exists $callback->{callback} and ref $callback->{callback} eq 'CODE')
     {
-        $callback->{callback}->($value, $column);
+        $callback->{callback}->($value, $row);
     }
 
     # Now, look for a transformation we might have to perform:
@@ -200,7 +230,7 @@ sub _perform_callback {
     }
 
     # OK, apply the transformation to the value:
-    return $callback->{transform}->($value);
+    return $callback->{transform}->($value, $row);
 }
 
 1;
@@ -212,6 +242,10 @@ __END__;
 
 You can pass an arrayref of hashrefs describing callbacks to be performed as
 the table is built up, which can modify the data before the table is produced.
+
+Each callback receives the value and, as of 0.04, the $row hashref (normally
+you will only want to look at the value, but occasionally I've found cases
+where the callback needs to see the rest of the row, for various reasons).
 
 This can be very useful; one example use-case would be turning the values in
 a column which contains URLs into clickable links:
@@ -247,6 +281,18 @@ Another example - displaying all numbers to two decimal points:
 It is hoped that this facility will allow the easyness of quickly creating
 a table to still be retained, even when you need to do things with the data
 rather than just displaying it exactly as it comes out of the database.
+
+
+=head1 DEPENDENCIES
+
+L<HTML::Table>, obviously :)
+
+L<HTML::Strip> is required if you use the -html => 'strip' option.
+
+L<CGI> will be used to encode HTML (this may change in future versions, as
+loading a module as big as CGI.pm simply to HTML-encode text seems akin
+to using a tactictal nuclear weapon to dig a hole.
+
 
 =head1 AUTHOR
 
