@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: mock.t 537 2009-02-13 23:37:52Z davidp $
+# $Id: mock.t 744 2009-10-03 16:41:39Z davidp $
 # Put HTML::Table::FromDatabase through its paces, using Test::MockObject
 # to provide a fake statement handle which provides known data.
 
@@ -13,11 +13,10 @@ plan skip_all => "Test::MockObject required for mock testing"
     if $@;
 
 # OK, we've got Test::MockObject, so we can go ahead:
-plan tests => 10;
+plan tests => 13;
 
 # Easy test: get a mock statement handle, and check we can make a table:
-my $mock = mocked_sth();
-my $table = HTML::Table::FromDatabase->new( -sth => $mock );
+my $table = HTML::Table::FromDatabase->new( -sth => mocked_sth() );
 ok($table, 'Seemed to get a table back');
 isa_ok($table, 'HTML::Table', 'We got something that ISA HTML::Table');
 my $html = $table->getTable;
@@ -25,9 +24,8 @@ like($html, qr{<th>Col1</th>}, 'Table contains one of the known column names');
 like($html, qr{<td>R1C1</td>}, 'Table contains a known field value');
 
 # now, test transformations:
-$mock = mocked_sth();
 $table = HTML::Table::FromDatabase->new(
-    -sth => $mock,
+    -sth => mocked_sth(),
     -callbacks => [
         {
             column => qr/Col[12]/,
@@ -44,7 +42,6 @@ $table = HTML::Table::FromDatabase->new(
     ],
 );
 $html = $table->getTable;
-warn $html;
 like($html, qr{<td>RE_T</td><td>RE_T</td>},
     'Callback regexp-matching column transformed OK');
 like($html, qr{<td>Plain_T</td>},
@@ -58,18 +55,43 @@ SKIP: {
     skip "HTML::Strip not installed", 2 if $@;
     
     # check that HTML is stripped/encoded properly
-    $mock = mocked_sth();
-    $table = HTML::Table::FromDatabase->new(-sth => $mock, -html => 'strip');
+    $table = HTML::Table::FromDatabase->new(
+        -sth  => mocked_sth(),
+        -html => 'strip',
+    );
     $html = $table->getTable;
     like(  $html, qr{<td>HTML</td>}, 'HTML stripped correctly');
     unlike($html, qr{evilscript},    'Scripts removed correctly');
 }
 
 # Check that HTML is encoded properly:
-$mock = mocked_sth();
-$table = HTML::Table::FromDatabase->new(-sth => $mock, -html => 'escape');
+$table = HTML::Table::FromDatabase->new(
+    -sth  => mocked_sth(),
+    -html => 'escape',
+);
 $html = $table->getTable;
 like($html, qr{<td>&lt;p&gt;HTML&lt;/p&gt;</td>}, 'HTML encoded correctly');
+
+
+# Check that overriding column names works
+# Regression test for bug #50164 reported b Ireneusz Pluta
+$table = HTML::Table::FromDatabase->new(
+    -sth => mocked_sth(),
+    -override_headers => [ qw(One Two Three Four) ],
+);
+$html = $table->getTable;
+like($html, qr{<th>One</th>}, '-override_headers works');
+
+# Check that renaming certain headers works
+$table = HTML::Table::FromDatabase->new(
+    -sth => mocked_sth(),
+    -rename_headers => { Col2 => 'Two' },
+);
+$html = $table->getTable;
+like($html, qr{<th>Two</th>}, 
+    '-rename_headers option renames column headers');
+like ($html, qr{<th>Col3</th>},
+    "-rename_headers option doesn't rename headers it shouldn't");
 
 
 # Returns a make-believe statement handle, which should behave just like

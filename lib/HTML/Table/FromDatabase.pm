@@ -6,9 +6,9 @@ use base qw(HTML::Table);
 use vars qw($VERSION);
 use HTML::Table;
 
-$VERSION = '0.05';
+$VERSION = '0.06';
 
-# $Id: FromDatabase.pm 665 2009-07-23 17:40:49Z davidp $
+# $Id: FromDatabase.pm 745 2009-10-03 16:44:19Z davidp $
 
 =head1 NAME
 
@@ -161,7 +161,7 @@ sub new {
         @heading_names = @$override_headers;
     }
     
-    $self->addSectionRow('thead', 0, @columns);
+    $self->addSectionRow('thead', 0, @heading_names);
     $self->setSectionRowHead('thead', 0, 1);
     
     # Add all the rows:
@@ -320,6 +320,12 @@ David Precious, E<lt>davidp@preshweb.co.ukE<gt>
 
 Feel free to contact me if you have any comments, suggestions or bugs to
 report.
+
+=head1 THANKS
+
+Thanks to Ireneusz Pluta for reporting bug with -override_headers /
+-rename_headers option and supplying patch in RT ticket #50164.
+
 
 =head1 COPYRIGHT AND LICENSE
 
