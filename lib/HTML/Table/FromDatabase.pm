@@ -6,14 +6,13 @@ use base qw(HTML::Table);
 use vars qw($VERSION);
 use HTML::Table;
 
-$VERSION = '0.06';
+$VERSION = '0.07';
 
-# $Id: FromDatabase.pm 745 2009-10-03 16:44:19Z davidp $
+# $Id: FromDatabase.pm 823 2010-01-29 20:31:43Z davidp $
 
 =head1 NAME
 
-HTML::Table::FromDatabase - subclass of HTML::Table to generate tables
-easily from a database query
+HTML::Table::FromDatabase - a subclass of HTML::Table to easily generate a HTML table from the result of a database query
 
 =head1 SYNOPSIS
 
@@ -307,9 +306,9 @@ rather than just displaying it exactly as it comes out of the database.
 
 L<HTML::Table>, obviously :)
 
-L<HTML::Strip> is required if you use the C<-html => 'strip'> option.
+L<HTML::Strip> is required if you use the C<< -html => 'strip' >> option.
 
-L<CGI> if you use the C<-html => 'encode'> option (this may change in future 
+L<CGI> if you use the C<< -html => 'encode' >> option (this may change in future 
 versions, as loading a module as big as CGI.pm simply to HTML-encode text 
 seems akin to using a tactictal nuclear weapon to dig a hole).
 
