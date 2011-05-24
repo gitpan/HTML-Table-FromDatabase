@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               HTML-Table-FromDatabase
-version:            0.07
+version:            1.00
 abstract:           a subclass of HTML::Table to easily generate a HTML table from the result of a database query
 author:
     - David Precious <davidp@preshweb.co.uk>

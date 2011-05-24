@@ -6,9 +6,9 @@ use base qw(HTML::Table);
 use vars qw($VERSION);
 use HTML::Table;
 
-$VERSION = '0.07';
+$VERSION = '1.00';
 
-# $Id: FromDatabase.pm 823 2010-01-29 20:31:43Z davidp $
+# $Id$
 
 =head1 NAME
 
@@ -60,7 +60,7 @@ to fetch data from
 =item C<-callbacks>
 
 (optional) specifies callbacks/transformations which should be applied as the
-table is built up (see the callbacks section below).
+table is built up (see the L</CALLBACKS> section below).
 
 =item C<-html>
 
@@ -99,6 +99,13 @@ sub new {
     if ($callbacks && ref $callbacks ne 'ARRAY') {
         warn "Unrecognised -callbacks parameter; "
             ."expected a arrayref of hashrefs";
+        return;
+    }
+
+    my $row_callbacks = delete $flags{-row_callbacks};
+    if ($row_callbacks && ref $row_callbacks ne 'ARRAY') {
+        warn "Unrecognised -row_callbacks parameter; "
+            . "expected an arrayref of coderefs";
         return;
     }
 
@@ -164,7 +171,17 @@ sub new {
     $self->setSectionRowHead('thead', 0, 1);
     
     # Add all the rows:
+    row:
     while (my $row = $sth->fetchrow_hashref) {
+        # First, if there are any row callbacks, call them:
+        for my $callback (@$row_callbacks) {
+            $callback->($row);
+        }
+
+        # If the callback undefined $row, we should skip it:
+        next row if !defined $row;
+
+        # Now, work through each field
         my @fields;
         for my $column (@columns) {
             my $value = $row->{$column};
@@ -259,6 +276,8 @@ __END__;
 
 =head1 CALLBACKS
 
+=head2 Per-cell callbacks
+
 You can pass an arrayref of hashrefs describing callbacks to be performed as
 the table is built up, which can modify the data before the table is produced.
 
@@ -285,6 +304,11 @@ You can match against the column name using a key named C<column> in the hashref
 You can pass a straight scalar to compare against, a regex (using qr//), or
 a coderef which will be executed to determine if it matches.
 
+You pass a coderef to be called for matching cells via the C<transform> key.
+You can use C<callback> instead if you want your coderef to be called but its
+return value to be discarded (i.e. you don't intend to modify the value, but do
+something else).
+
 Another example - displaying all numbers to two decimal points:
 
  my $table = HTML::Table::FromDatabase->new(
@@ -300,6 +324,43 @@ Another example - displaying all numbers to two decimal points:
 It is hoped that this facility will allow the easiness of quickly creating
 a table to still be retained, even when you need to do things with the data
 rather than just displaying it exactly as it comes out of the database.
+
+=head2 Per-row callbacks
+
+You can also supply callbacks which operate on an entire row at a time with
+the C<-row_callbacks> option, which simply takes an arrayref of coderefs, each
+of which will be called in turn, will receive the row hashref as its first
+parameter, and can modify the row in whatever way is desired.
+
+  my $table = HTML::Table::FromDatabase->new(
+      -sth => $sth,
+      -row_callbacks => [
+          sub {
+            my $row = shift;
+            # Do things with $row here
+          },
+      ],
+  ):
+
+If a row callback sets the C<$row> hashref to undef, that row will be skipped.
+
+A more in-depth, if somewhat contrived, example:
+
+  my $table = HTML::Table::FromDatabase->new(
+      -sth => $sth,
+      -row_callbacks => [
+          sub {
+            my $row = shift;
+            if ($row->{name} eq 'Bob') {
+                # Hide this row
+                $row = undef;
+            } elsif ($row->{name} eq 'John') {
+                # John likes to be called Jean these days:
+                $row->{name} = 'Jean';
+            }
+          },
+      ],
+  );
 
 
 =head1 DEPENDENCIES
@@ -328,7 +389,7 @@ Thanks to Ireneusz Pluta for reporting bug with -override_headers /
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2008-2009 by David Precious
+Copyright (C) 2008-2011 by David Precious
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.7 or,

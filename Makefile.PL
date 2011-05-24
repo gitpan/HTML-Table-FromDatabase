@@ -1,4 +1,4 @@
-# $Id: Makefile.PL 665 2009-07-23 17:40:49Z davidp $
+# $Id$
 
 use strict;
 use ExtUtils::MakeMaker;
