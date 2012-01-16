@@ -2,11 +2,12 @@ package HTML::Table::FromDatabase;
 
 use 5.005000;
 use strict;
+no warnings 'uninitialized';
 use base qw(HTML::Table);
 use vars qw($VERSION);
 use HTML::Table;
 
-$VERSION = '1.02';
+$VERSION = '1.03';
 
 # $Id$
 
