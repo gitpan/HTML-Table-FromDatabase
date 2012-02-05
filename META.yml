@@ -19,4 +19,4 @@ no_index:
     - inc
 requires:
   HTML::Table: 0
-version: 1.03
+version: 1.10
